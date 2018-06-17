@@ -3,9 +3,11 @@ package com.idklomg.raytracerj;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,38 +56,53 @@ public final class App {
 
     BufferedImage img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
+    Random random = new Random();
+
     List<GeometricObject> shapes =
-        ImmutableList.of(
-            Sphere.newBuilder()
-                .setCenter(Point3D.create(0, 0, -100))
-                .setRadius(50)
-                .setColor(Color.create(0xFF0000))
-                .build(),
-            Sphere.newBuilder()
-                .setCenter(Point3D.create(-200, 0, -100))
-                .setRadius(100)
-                .setColor(Color.create(0x00FF00))
-                .build(),
-            Sphere.newBuilder()
-                .setCenter(Point3D.create(100, -70, -220))
-                .setRadius(50)
-                .setColor(Color.create(0x0000FF))
-                .build(),
-            Sphere.newBuilder()
-                .setCenter(Point3D.create(150, -20, -160))
-                .setRadius(50)
-                .setColor(Color.create(0x00FFFF))
-                .build(),
-            Sphere.newBuilder()
-                .setCenter(Point3D.create(180, 20, -100))
-                .setRadius(50)
-                .setColor(Color.create(0xFFFF00))
-                .build(),
-            Plane.newBuilder()
-                .setPoint(Point3D.create(0, 50, -100))
-                .setNormal(Normal.create(0.1, 1, 0.5))
-                .setColor(Color.create(0xFFFFFF))
-                .build());
+        new ArrayList<>(
+          ImmutableList.of(
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(0, 0, -100))
+                  .setRadius(50)
+                  .setColor(Color.create(0xFF0000))
+                  .build(),
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(-200, 0, -100))
+                  .setRadius(100)
+                  .setColor(Color.create(0x00FF00))
+                  .build(),
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(100, -70, -220))
+                  .setRadius(50)
+                  .setColor(Color.create(0x0000FF))
+                  .build(),
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(150, -20, -160))
+                  .setRadius(50)
+                  .setColor(Color.create(0x00FFFF))
+                  .build(),
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(180, 20, -100))
+                  .setRadius(50)
+                  .setColor(Color.create(0xFFFF00))
+                  .build(),
+              Plane.newBuilder()
+                  .setPoint(Point3D.create(0, 50, -100))
+                  .setNormal(Normal.create(0.1, 1, 0.5))
+                  .setColor(Color.create(0xFFFFFF))
+                  .build()));
+    for (int i = 0; i < 20; i++) {
+      shapes.add(
+          Sphere.newBuilder()
+              .setCenter(
+                  Point3D.create(
+                      random.nextInt(WIDTH) - WIDTH / 2,
+                      random.nextInt(HEIGHT) - HEIGHT / 2,
+                      -1 * random.nextInt(1000) - 50))
+              .setRadius(random.nextInt(75))
+              .setColor(Color.create(random.nextInt(0x1000000)))
+              .build());
+    }
 
     AtomicLong count = new AtomicLong();
     int width = img.getWidth();
