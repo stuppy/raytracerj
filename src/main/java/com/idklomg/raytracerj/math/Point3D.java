@@ -17,20 +17,8 @@ public abstract class Point3D implements Thing3D {
   public abstract double getY();
   public abstract double getZ();
 
-  public Point3D add(Point3D point) {
-    return newBuilder()
-        .setX(getX() + point.getX())
-        .setY(getY() + point.getY())
-        .setZ(getZ() + point.getZ())
-        .build();
-  }
-
-  public Point3D subtract(Point3D point) {
-    return newBuilder()
-        .setX(getX() - point.getX())
-        .setY(getY() - point.getY())
-        .setZ(getZ() - point.getZ())
-        .build();
+  public Vector3D subtract(Point3D point) {
+    return Vector3D.create(getX() - point.getX(), getY() - point.getY(), getZ() - point.getZ());
   }
 
   @AutoValue.Builder

@@ -3,9 +3,12 @@ package com.idklomg.raytracerj.geometry;
 import java.util.Optional;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.idklomg.raytracerj.material.Color;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
+import com.idklomg.raytracerj.math.Vector3D;
 
 @AutoValue
 public abstract class Sphere implements GeometricObject {
@@ -18,13 +21,14 @@ public abstract class Sphere implements GeometricObject {
   abstract double getRadius();
   public abstract Color getColor();
 
+  private final Supplier<Double> radiusSquared = Suppliers.memoize(() -> getRadius() * getRadius());
+
   @Override
   public Optional<Double> hit(Ray ray) {
     double a = ray.getDirection().dot(ray.getDirection());
-    double b = 2 * ray.getOrigin().subtract(getCenter()).dot(ray.getDirection());
-    double c =
-        ray.getOrigin().subtract(getCenter()).dot(ray.getOrigin().subtract(getCenter()))
-          - (getRadius() * getRadius());
+    Vector3D toCenter = ray.getOrigin().subtract(getCenter());
+    double b = 2 * toCenter.dot(ray.getDirection());
+    double c = toCenter.dot(toCenter) - radiusSquared.get();
 
     double discriminant = (b * b) - (4 * a * c);
     // If discriminant is < 0, sqrt won't return because there's not a hit.

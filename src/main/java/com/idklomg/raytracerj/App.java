@@ -27,7 +27,7 @@ import com.idklomg.raytracerj.math.Normal;
 import com.idklomg.raytracerj.math.Point2D;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
-import com.idklomg.raytracerj.projection.OrthographicProjection;
+import com.idklomg.raytracerj.projection.PerspectiveProjection;
 import com.idklomg.raytracerj.projection.Projection;
 import com.idklomg.raytracerj.sampling.RegularSampler;
 import com.idklomg.raytracerj.sampling.Sampler;
@@ -36,7 +36,7 @@ public final class App {
 
   private static final String FILENAME = "Image.png";
   private static final int WIDTH = 800;
-  private static final int HEIGHT = 600;
+  private static final int HEIGHT = 800;
   private static final String IMAGE_FORMAT = "PNG";
   private static final Color BACKGROUND_COLOR = Color.create(0x99cc99);
 
@@ -62,36 +62,46 @@ public final class App {
         new ArrayList<>(
           ImmutableList.of(
               Sphere.newBuilder()
-                  .setCenter(Point3D.create(0, 0, -100))
-                  .setRadius(50)
+                  .setCenter(Point3D.create(0, 0, -2000))
+                  .setRadius(300)
                   .setColor(Color.create(0xFF0000))
                   .build(),
               Sphere.newBuilder()
-                  .setCenter(Point3D.create(-200, 0, -100))
-                  .setRadius(100)
+                  .setCenter(Point3D.create(-1300, 0, -2000))
+                  .setRadius(400)
                   .setColor(Color.create(0x00FF00))
                   .build(),
               Sphere.newBuilder()
-                  .setCenter(Point3D.create(100, -70, -220))
-                  .setRadius(50)
+                  .setCenter(Point3D.create(1000, 1000, -2000))
+                  .setRadius(400)
                   .setColor(Color.create(0x0000FF))
                   .build(),
               Sphere.newBuilder()
-                  .setCenter(Point3D.create(150, -20, -160))
+                  .setCenter(Point3D.create(-1000, -1000, -2700))
+                  .setRadius(700)
+                  .setColor(Color.create(0xff6600))
+                  .build(),
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(1000, -1000, -2000))
+                  .setRadius(800)
+                  .setColor(Color.create(0xff66ff))
+                  .build(),
+              Sphere.newBuilder()
+                  .setCenter(Point3D.create(150, -20, -1600))
                   .setRadius(50)
                   .setColor(Color.create(0x00FFFF))
                   .build(),
               Sphere.newBuilder()
-                  .setCenter(Point3D.create(180, 20, -100))
+                  .setCenter(Point3D.create(180, 20, -1000))
                   .setRadius(50)
                   .setColor(Color.create(0xFFFF00))
                   .build(),
               Plane.newBuilder()
-                  .setPoint(Point3D.create(0, 50, -100))
-                  .setNormal(Normal.create(0.1, 1, 0.5))
+                  .setPoint(Point3D.create(0, -50, -5000))
+                  .setNormal(Normal.create(0.2, 1, 0.5))
                   .setColor(Color.create(0xFFFFFF))
                   .build()));
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 0; i++) {
       shapes.add(
           Sphere.newBuilder()
               .setCenter(
@@ -120,7 +130,7 @@ public final class App {
           Point2D sample = samples.next();
           numSamples++;
 
-          Ray ray = projection.createRay(Point3D.create(sample.getX(), sample.getY(), 0));
+          Ray ray = projection.createRay(sample);
 
           double closest = Double.MAX_VALUE;
           // Default to the background color unless a closer color is found.
@@ -164,8 +174,13 @@ public final class App {
 
     @Override
     protected void configure() {
-      bind(Projection.class).to(OrthographicProjection.class);
-      bind(Sampler.class).toInstance(new RegularSampler(8));
+      PerspectiveProjection perspectiveProjection =
+          PerspectiveProjection.create(
+              Point3D.create(0, 0, 4000),
+              Point3D.create(0, 0, 0),
+              (HEIGHT / 2) / Math.tan(70.0 / 2));
+      bind(Projection.class).toInstance(perspectiveProjection);
+      bind(Sampler.class).toInstance(new RegularSampler(1));
     }
   }
 
