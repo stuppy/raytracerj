@@ -1,9 +1,8 @@
 package com.idklomg.raytracerj.geometry;
 
-import java.util.Optional;
-
 import com.idklomg.raytracerj.material.Color;
 import com.idklomg.raytracerj.math.Ray;
+import java.util.Optional;
 
 public interface GeometricObject {
 

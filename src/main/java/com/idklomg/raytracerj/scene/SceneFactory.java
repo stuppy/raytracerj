@@ -1,7 +1,5 @@
 package com.idklomg.raytracerj.scene;
 
-import java.util.Random;
-
 import com.google.common.collect.ImmutableList;
 import com.idklomg.raytracerj.geometry.GeometricObject;
 import com.idklomg.raytracerj.geometry.Plane;
@@ -9,6 +7,7 @@ import com.idklomg.raytracerj.geometry.Sphere;
 import com.idklomg.raytracerj.material.Color;
 import com.idklomg.raytracerj.math.Normal;
 import com.idklomg.raytracerj.math.Point3D;
+import java.util.Random;
 
 public final class SceneFactory {
 

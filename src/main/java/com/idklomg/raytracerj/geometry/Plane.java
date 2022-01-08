@@ -1,12 +1,11 @@
 package com.idklomg.raytracerj.geometry;
 
-import java.util.Optional;
-
 import com.google.auto.value.AutoValue;
 import com.idklomg.raytracerj.material.Color;
 import com.idklomg.raytracerj.math.Normal;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
+import java.util.Optional;
 
 @AutoValue
 public abstract class Plane implements GeometricObject {

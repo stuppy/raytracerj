@@ -1,8 +1,7 @@
 package com.idklomg.raytracerj.sampling;
 
-import java.util.Iterator;
-
 import com.idklomg.raytracerj.math.Point2D;
+import java.util.Iterator;
 
 public interface Sampler {
 

@@ -1,16 +1,5 @@
 package com.idklomg.raytracerj;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.imageio.ImageIO;
-import javax.inject.Inject;
-
 import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -25,6 +14,15 @@ import com.idklomg.raytracerj.projection.Projection;
 import com.idklomg.raytracerj.sampling.RegularSampler;
 import com.idklomg.raytracerj.sampling.Sampler;
 import com.idklomg.raytracerj.scene.SceneFactory;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.imageio.ImageIO;
+import javax.inject.Inject;
 
 public final class App {
 
