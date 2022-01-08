@@ -3,11 +3,8 @@ package com.idklomg.raytracerj;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -15,15 +12,11 @@ import javax.imageio.ImageIO;
 import javax.inject.Inject;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.idklomg.raytracerj.geometry.GeometricObject;
-import com.idklomg.raytracerj.geometry.Plane;
-import com.idklomg.raytracerj.geometry.Sphere;
 import com.idklomg.raytracerj.material.Color;
-import com.idklomg.raytracerj.math.Normal;
 import com.idklomg.raytracerj.math.Point2D;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
@@ -31,6 +24,7 @@ import com.idklomg.raytracerj.projection.PerspectiveProjection;
 import com.idklomg.raytracerj.projection.Projection;
 import com.idklomg.raytracerj.sampling.RegularSampler;
 import com.idklomg.raytracerj.sampling.Sampler;
+import com.idklomg.raytracerj.scene.SceneFactory;
 
 public final class App {
 
@@ -55,64 +49,7 @@ public final class App {
     Stopwatch watch = Stopwatch.createStarted();
 
     BufferedImage img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-
-    Random random = new Random();
-
-    List<GeometricObject> shapes =
-        new ArrayList<>(
-          ImmutableList.of(
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(0, 0, -2000))
-                  .setRadius(300)
-                  .setColor(Color.create(0xFF0000))
-                  .build(),
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(-1300, 0, -2000))
-                  .setRadius(400)
-                  .setColor(Color.create(0x00FF00))
-                  .build(),
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(1000, 1000, -2000))
-                  .setRadius(400)
-                  .setColor(Color.create(0x0000FF))
-                  .build(),
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(-1000, -1000, -2700))
-                  .setRadius(700)
-                  .setColor(Color.create(0xff6600))
-                  .build(),
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(1000, -1000, -2000))
-                  .setRadius(800)
-                  .setColor(Color.create(0xff66ff))
-                  .build(),
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(150, -20, -1600))
-                  .setRadius(50)
-                  .setColor(Color.create(0x00FFFF))
-                  .build(),
-              Sphere.newBuilder()
-                  .setCenter(Point3D.create(180, 20, -1000))
-                  .setRadius(50)
-                  .setColor(Color.create(0xFFFF00))
-                  .build(),
-              Plane.newBuilder()
-                  .setPoint(Point3D.create(0, -50, -5000))
-                  .setNormal(Normal.create(0.2, 1, 0.5))
-                  .setColor(Color.create(0xFFFFFF))
-                  .build()));
-    for (int i = 0; i < 0; i++) {
-      shapes.add(
-          Sphere.newBuilder()
-              .setCenter(
-                  Point3D.create(
-                      random.nextInt(WIDTH) - WIDTH / 2,
-                      random.nextInt(HEIGHT) - HEIGHT / 2,
-                      -1 * random.nextInt(1000) - 50))
-              .setRadius(random.nextInt(75))
-              .setColor(Color.create(random.nextInt(0x1000000)))
-              .build());
-    }
+    Iterable<GeometricObject> shapes = SceneFactory.generate(WIDTH, HEIGHT);
 
     AtomicLong count = new AtomicLong();
     int width = img.getWidth();
