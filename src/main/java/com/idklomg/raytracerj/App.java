@@ -1,122 +1,241 @@
 package com.idklomg.raytracerj;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.math.Stats;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.idklomg.raytracerj.common.Randoms;
 import com.idklomg.raytracerj.geometry.GeometricObject;
+import com.idklomg.raytracerj.geometry.Hit;
+import com.idklomg.raytracerj.geometry.Sphere;
 import com.idklomg.raytracerj.material.Color;
+import com.idklomg.raytracerj.material.Dielectric;
+import com.idklomg.raytracerj.material.Lambertian;
+import com.idklomg.raytracerj.material.Material;
+import com.idklomg.raytracerj.material.Metal;
+import com.idklomg.raytracerj.material.Reflection;
 import com.idklomg.raytracerj.math.Point2D;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
-import com.idklomg.raytracerj.projection.PerspectiveProjection;
-import com.idklomg.raytracerj.projection.Projection;
-import com.idklomg.raytracerj.sampling.RegularSampler;
-import com.idklomg.raytracerj.sampling.Sampler;
-import com.idklomg.raytracerj.scene.SceneFactory;
+import com.idklomg.raytracerj.math.Vector3D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Iterator;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
-import javax.inject.Inject;
 
 public final class App {
 
   private static final String FILENAME = "Image.png";
-  private static final int WIDTH = 800;
-  private static final int HEIGHT = 800;
+  private static final double FIELD_OF_VIEW_IN_DEGREES = 20;
+  private static final double ASPECT_RATIO = 3.0 / 2.0;
+  private static final Point3D LOOK_FROM = Point3D.create(13, 2, 3);
+  private static final Point3D LOOK_AT = Point3D.create(0, 0, 0);
+  private static final Vector3D VERTICAL_UP = Vector3D.create(0, 1, 0);
+  private static final double DIST_TO_FOCUS = 10.0;
+  private static final double APERTURE = 0.1;
+  private static final int IMAGE_WIDTH = 200;
+  private static final int IMAGE_HEIGHT = (int) (IMAGE_WIDTH / ASPECT_RATIO);
   private static final String IMAGE_FORMAT = "PNG";
-  private static final Color BACKGROUND_COLOR = Color.create(0x99cc99);
+  private static final Color WHITE = Color.create(0xFFFFFF);
+  private static final Color SAMPLE = Color.create(0.5, 0.7, 1.0);
+  private static final int SAMPLES_PER_PIXEL = 500;
+  private static final int MAX_DEPTH = 50;
 
-  private final Projection projection;
-  private final Sampler sampler;
-
-  @Inject
-  App(
-      Projection projection,
-      Sampler sampler) {
-    this.projection = projection;
-    this.sampler = sampler;
+  App() {
   }
 
   void run() {
-    Stopwatch watch = Stopwatch.createStarted();
+    Camera camera =
+        Camera.newBuilder()
+            .setLookFrom(LOOK_FROM)
+            .setLookAt(LOOK_AT)
+            .setVerticalUp(VERTICAL_UP)
+            .setFieldOfViewInDegrees(FIELD_OF_VIEW_IN_DEGREES)
+            .setAspectRatio(ASPECT_RATIO)
+            .setAperture(APERTURE)
+            .setFocusDistance(DIST_TO_FOCUS)
+            .build();
 
-    BufferedImage img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
-    Iterable<GeometricObject> shapes = SceneFactory.generate(WIDTH, HEIGHT);
-
-    AtomicLong count = new AtomicLong();
-    int width = img.getWidth();
-    int height = img.getHeight();
-    int dimensions = width * height;
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        // Start with black/no color.
-        Color color = Color.create(0x000000);
-        boolean hit = false;
-
-        Iterator<Point2D> samples = sampler.getSamples((x - width / 2), (y - height / 2));
-        int numSamples = 0;
-        while (samples.hasNext()) {
-          Point2D sample = samples.next();
-          numSamples++;
-
-          Ray ray = projection.createRay(sample);
-
-          double closest = Double.MAX_VALUE;
-          // Default to the background color unless a closer color is found.
-          Color closestColor = BACKGROUND_COLOR;
-          for (GeometricObject shape : shapes) {
-            Optional<Double> t = shape.hit(ray);
-            if (t.isPresent() && t.get() < closest) {
-              closest = t.get();
-              closestColor = shape.getColor();
-              hit = true;
-            }
-          }
-          if (closestColor != null) {
-            color = color.add(closestColor);
-          }
-        }
-        if (hit) {
-          img.setRGB(x, y, color.divide(numSamples).toRgb());
-        } else {
-          img.setRGB(x, y, BACKGROUND_COLOR.toRgb());
-        }
-        long c = count.incrementAndGet();
-        if (c % 1000 == 0 || c == dimensions) {
-          System.out.printf("\r%d%%", Math.round(100.0 * c / dimensions));
-        }
+    BufferedImage img = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB);
+    List<Point2D> todos = new ArrayList<>();
+    for (int j = IMAGE_HEIGHT - 1; j >= 0; --j) {
+      for (int i = 0; i < IMAGE_WIDTH; ++i) {
+        todos.add(Point2D.create(i, j));
       }
     }
-
-    System.out.println();
-
+    AtomicInteger remaining = new AtomicInteger(todos.size());
+    System.out.printf("Processing %d scanpoints%n", remaining.get());
+    Stopwatch sw = Stopwatch.createStarted();
+    Deque<Long> timings = new ConcurrentLinkedDeque<>();
+    int n = 1_000;
+    todos.parallelStream().forEach(
+        point -> {
+          int i = (int) point.getX();
+          int j = (int) point.getY();
+          Color color = Color.BLACK;
+          for (int s = 0; s < SAMPLES_PER_PIXEL; ++s) {
+            double u = ((double) i + Randoms.randomDouble()) / (IMAGE_WIDTH - 1);
+            double v = ((double) j + Randoms.randomDouble()) / (IMAGE_HEIGHT - 1);
+            Ray ray = camera.getRay(u, v);
+            Color sample = rayColor(ray, MAX_DEPTH);
+            color = color.add(sample);
+          }
+          img.setRGB(i, IMAGE_HEIGHT - 1 - j, color.divide(SAMPLES_PER_PIXEL).gamma2().toRgb());
+          int togo = remaining.decrementAndGet();
+          if (togo % n == 0) {
+            // TODO(stuppy): avg(last N) would be better.
+            int done = todos.size() - togo;
+            Duration time = sw.elapsed().dividedBy(done);
+            synchronized (timings) {
+              timings.addFirst(time.toMillis());
+              if (timings.size() > 100) {
+                timings.removeLast();
+              }
+              double avgMs = Stats.meanOf(timings);
+              Duration estimate = Duration.ofMillis((long) (avgMs * togo));
+              System.out.printf("%s: Scanpoints remaining: %d (~%s)%n", new Date(), togo, estimate);
+            }
+          }
+        });
+//    for (int j = IMAGE_HEIGHT - 1; j >= 0; --j) {
+//      for (int i = 0; i < IMAGE_WIDTH; ++i) {
+//        Color color = Color.BLACK;
+//        for (int s = 0; s < SAMPLES_PER_PIXEL; ++s) {
+//          double u = ((double) i + Randoms.randomDouble()) / (IMAGE_WIDTH - 1);
+//          double v = ((double) j + Randoms.randomDouble()) / (IMAGE_HEIGHT - 1);
+//          Ray ray = camera.getRay(u, v);
+//          Color sample = rayColor(ray, MAX_DEPTH);
+//          color = color.add(sample);
+//        }
+//        img.setRGB(i, IMAGE_HEIGHT - 1 - j, color.divide(SAMPLES_PER_PIXEL).gamma2().toRgb());
+//      }
+//      System.out.printf("Scanlines remaining: %s%n", j);
+//    }
     try {
       ImageIO.write(img, IMAGE_FORMAT, new File(FILENAME));
     } catch (IOException e) {
       throw new RuntimeException("ImageIO.write failed", e);
     }
+  }
 
-    System.out.printf("Finished in %s ms%n", watch.elapsed(TimeUnit.MILLISECONDS));
+  private static final World world;
+  static {
+    Material groundMaterial = Lambertian.color(Color.create(0.5, 0.5, 0.5));
+    List<GeometricObject> shapes = new ArrayList<>();
+    shapes.add(
+        Sphere.newBuilder()
+            .setCenter(0,-1000,0)
+            .setRadius(1000.0)
+            .setMaterial(groundMaterial)
+            .build());
+    Point3D checkPoint = Point3D.create(4, 0.2, 0);
+    for (int a = -11; a < 11; a++) {
+      for (int b = -11; b < 11; b++) {
+        double chooseMat = Randoms.randomDouble();
+        Point3D center =
+            Point3D.create(
+                a + 0.9 * Randoms.randomDouble(),
+                0.2,
+                b + 0.9 * Randoms.randomDouble());
+        if (center.subtract(checkPoint).length() > 0.9) {
+          Material sphereMaterial;
+          if (chooseMat < 0.8) {
+            // diffuse
+            Color albedo = Color.random().darken();
+            sphereMaterial = Lambertian.color(albedo);
+          } else if (chooseMat < 0.95) {
+            // metal
+            Color albedo = Color.random(0.5, 1);
+            double fuzz = Randoms.randomDouble(0, 0.5);
+            sphereMaterial = Metal.create(albedo, fuzz);
+          } else {
+            // glass
+            sphereMaterial = Dielectric.create(1.5);
+          }
+          shapes.add(
+              Sphere.newBuilder()
+                  .setCenter(center)
+                  .setRadius(0.2)
+                  .setMaterial(sphereMaterial)
+                  .build());
+        }
+      }
+    }
+    shapes.add(
+        Sphere.newBuilder()
+            .setCenter(0, 1, 0)
+            .setRadius(1.0)
+            .setMaterial(Dielectric.create(1.5))
+            .build());
+    shapes.add(
+        Sphere.newBuilder()
+            .setCenter(-4, 1, 0)
+            .setRadius(1.0)
+            .setMaterial(Lambertian.color(Color.create(0.4, 0.2, 0.1)))
+            .build());
+    shapes.add(
+        Sphere.newBuilder()
+            .setCenter(4, 1, 0)
+            .setRadius(1.0)
+            .setMaterial(Metal.create(Color.create(0.7, 0.6, 0.5), 0))
+            .build());
+    world = World.newBuilder().setShapes(shapes).build();
+  }
+
+  private Color rayColor(Ray ray, int depth) {
+    if (depth <= 0) {
+      return Color.BLACK;
+    }
+
+    Optional<Hit> optClosest = world.hit(ray);
+    if (optClosest.isPresent()) {
+      Hit hit = optClosest.get();
+      Optional<Reflection> optReflection = hit.getMaterial().scatter(ray, hit);
+      return optReflection
+          .map(
+              reflection ->
+                reflection
+                    .getAttenuation()
+                    .darkenBy(rayColor(reflection.getScattered(), depth - 1)))
+          .orElse(Color.BLACK);
+    }
+    return background(ray);
+  }
+
+  @SuppressWarnings("unused")
+  private Color background(Ray ray) {
+    if (false) {
+      return quadrants(ray.getDirection().getX(), ray.getDirection().getY());
+    }
+    Vector3D unitDirection = ray.getDirection().toUnitVector();
+    double t = 0.5 * (unitDirection.getY() + 1.0);
+    return WHITE.multiply(1.0 - t).add(SAMPLE.multiply(t));
+  }
+
+  private Color quadrants(double x, double y) {
+    if (x >= 0) {
+      if (y >= 0) {
+        return Color.create(0xFF0000);
+      } else {
+        return Color.create(0x00FF00);
+      }
+    } else if (y >= 0) {
+      return Color.create(0x0000FF);
+    } else {
+      return Color.create(0xFFFF00);
+    }
   }
 
   private static final class Module extends AbstractModule {
-
-    @Override
-    protected void configure() {
-      PerspectiveProjection perspectiveProjection =
-          PerspectiveProjection.create(
-              Point3D.create(0, 0, 4000),
-              Point3D.create(0, 0, 0),
-              (HEIGHT / 2) / Math.tan(70.0 / 2));
-      bind(Projection.class).toInstance(perspectiveProjection);
-      bind(Sampler.class).toInstance(new RegularSampler(1));
-    }
   }
 
   public static void main(String[] args) {

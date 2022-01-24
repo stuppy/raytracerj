@@ -1,9 +1,8 @@
 package com.idklomg.raytracerj.geometry;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.idklomg.raytracerj.material.Color;
+import com.google.auto.value.extension.memoized.Memoized;
+import com.idklomg.raytracerj.material.Material;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
 import com.idklomg.raytracerj.math.Vector3D;
@@ -18,37 +17,56 @@ public abstract class Sphere implements GeometricObject {
 
   abstract Point3D getCenter();
   abstract double getRadius();
-  public abstract Color getColor();
-
-  private final Supplier<Double> radiusSquared = Suppliers.memoize(() -> getRadius() * getRadius());
+  public abstract Material getMaterial();
 
   @Override
-  public Optional<Double> hit(Ray ray) {
-    double a = ray.getDirection().dot(ray.getDirection());
-    Vector3D toCenter = ray.getOrigin().subtract(getCenter());
-    double b = 2 * toCenter.dot(ray.getDirection());
-    double c = toCenter.dot(toCenter) - radiusSquared.get();
+  public Optional<Hit> hit(Ray ray, double tMin, double tMax) {
+    Vector3D fromCenter = ray.getOrigin().subtract(getCenter());
+    double a = ray.getDirection().dot();
+    double halfB = fromCenter.dot(ray.getDirection());
+    double c = fromCenter.dot() - getRadiusSquared();
 
-    double discriminant = (b * b) - (4 * a * c);
+    double discriminant = Math.pow(halfB, 2) - (a * c);
     // If discriminant is < 0, sqrt won't return because there's not a hit.
     if (discriminant < 0) {
       return Optional.empty();
     }
 
-    // Skipping + because we only want the *closest* hit.
-    double t = (-b - Math.sqrt(discriminant)) / (2 * a);
-    if (t > HIT_THRESHOLD) {
-      return Optional.of(t);
-    } else {
-      return Optional.empty();
+    double sqrtd = Math.sqrt(discriminant);
+    double t = (-halfB - sqrtd) / a;
+    if (t < tMin || t > tMax) {
+      t = (-halfB + sqrtd) / a;
+      if (t < tMin || t > tMax) {
+        return Optional.empty();
+      }
     }
+    Point3D p = ray.at(t);
+    Vector3D outwardNormal = p.subtract(getCenter()).unscale(getRadius());
+    boolean frontFace = ray.getDirection().dot(outwardNormal) < 0;
+    Vector3D normal = frontFace ? outwardNormal : outwardNormal.negate();
+    return Optional.of(
+        Hit.newBuilder()
+            .setT(t)
+            .setPoint(p)
+            .setNormal(normal)
+            .setFrontFace(frontFace)
+            .setMaterial(getMaterial())
+            .build());
+  }
+
+  @Memoized
+  double getRadiusSquared() {
+    return Math.pow(getRadius(), 2);
   }
 
   @AutoValue.Builder
   public abstract static class Builder {
     public abstract Builder setCenter(Point3D center);
+    public Builder setCenter(double x, double y, double z) {
+      return setCenter(Point3D.create(x, y, z));
+    }
     public abstract Builder setRadius(double radius);
-    public abstract Builder setColor(Color color);
+    public abstract Builder setMaterial(Material material);
 
     public abstract Sphere build();
   }
