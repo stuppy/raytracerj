@@ -1,5 +1,6 @@
 package com.idklomg.raytracerj;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.base.Stopwatch;
 import com.google.common.math.Stats;
 import com.google.inject.AbstractModule;
@@ -15,7 +16,6 @@ import com.idklomg.raytracerj.material.Lambertian;
 import com.idklomg.raytracerj.material.Material;
 import com.idklomg.raytracerj.material.Metal;
 import com.idklomg.raytracerj.material.Reflection;
-import com.idklomg.raytracerj.math.Point2D;
 import com.idklomg.raytracerj.math.Point3D;
 import com.idklomg.raytracerj.math.Ray;
 import com.idklomg.raytracerj.math.Vector3D;
@@ -53,6 +53,12 @@ public final class App {
   App() {
   }
 
+  @AutoValue
+  abstract static class Todo {
+    abstract int getI();
+    abstract int getJ();
+  }
+
   void run() {
     Camera camera =
         Camera.newBuilder()
@@ -66,10 +72,10 @@ public final class App {
             .build();
 
     BufferedImage img = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB);
-    List<Point2D> todos = new ArrayList<>();
+    List<Todo> todos = new ArrayList<>();
     for (int j = IMAGE_HEIGHT - 1; j >= 0; --j) {
       for (int i = 0; i < IMAGE_WIDTH; ++i) {
-        todos.add(Point2D.create(i, j));
+        todos.add(new AutoValue_App_Todo(i, j));
       }
     }
     AtomicInteger remaining = new AtomicInteger(todos.size());
@@ -78,9 +84,9 @@ public final class App {
     Deque<Long> timings = new ConcurrentLinkedDeque<>();
     int n = 1_000;
     todos.parallelStream().forEach(
-        point -> {
-          int i = (int) point.getX();
-          int j = (int) point.getY();
+        todo -> {
+          int i = todo.getI();
+          int j = todo.getJ();
           Color color = Color.BLACK;
           for (int s = 0; s < SAMPLES_PER_PIXEL; ++s) {
             double u = ((double) i + Randoms.randomDouble()) / (IMAGE_WIDTH - 1);
