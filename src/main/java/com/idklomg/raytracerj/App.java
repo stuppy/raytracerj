@@ -128,8 +128,9 @@ public final class App {
             .setMaterial(groundMaterial)
             .build());
     Point3D checkPoint = Point3D.create(4, 0.2, 0);
-    for (int a = -11; a < 11; a++) {
-      for (int b = -11; b < 11; b++) {
+    int sphereSpread = 11;
+    for (int a = -sphereSpread; a < sphereSpread; a++) {
+      for (int b = -sphereSpread; b < sphereSpread; b++) {
         double chooseMat = Randoms.randomDouble();
         Point3D center =
             Point3D.create(
