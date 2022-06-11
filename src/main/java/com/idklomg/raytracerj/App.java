@@ -2,7 +2,6 @@ package com.idklomg.raytracerj;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.base.Stopwatch;
-import com.google.common.math.Stats;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -24,11 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
 
@@ -78,11 +75,11 @@ public final class App {
         todos.add(new AutoValue_App_Todo(i, j));
       }
     }
-    AtomicInteger remaining = new AtomicInteger(todos.size());
-    System.out.printf("Processing %d scanpoints%n", remaining.get());
+    int count = todos.size();
+    System.out.printf("Processing %d scanpoints%n", count);
     Stopwatch sw = Stopwatch.createStarted();
-    Deque<Long> timings = new ConcurrentLinkedDeque<>();
     int n = 1_000;
+    AtomicInteger doneCount = new AtomicInteger();
     todos.parallelStream().forEach(
         todo -> {
           int i = todo.getI();
@@ -96,19 +93,15 @@ public final class App {
             color = color.add(sample);
           }
           img.setRGB(i, IMAGE_HEIGHT - 1 - j, color.divide(SAMPLES_PER_PIXEL).gamma2().toRgb());
-          int togo = remaining.decrementAndGet();
-          if (togo % n == 0) {
-            // TODO(stuppy): avg(last N) would be better.
-            int done = todos.size() - togo;
-            Duration time = sw.elapsed().dividedBy(done);
-            synchronized (timings) {
-              timings.addFirst(time.toMillis());
-              if (timings.size() > 100) {
-                timings.removeLast();
-              }
-              double avgMs = Stats.meanOf(timings);
-              Duration estimate = Duration.ofMillis((long) (avgMs * togo));
-              System.out.printf("%s: Scanpoints remaining: %d (~%s)%n", new Date(), togo, estimate);
+          int done = doneCount.incrementAndGet();
+          if (done % n == 0) {
+            synchronized (sw) {
+              double msForN = sw.elapsed(TimeUnit.MILLISECONDS);
+              sw.reset().start();
+              int togo = count - done;
+              long msForTogo = (long) ((double) togo * msForN / n);
+              Duration estimate = Duration.ofMillis(msForTogo);
+              System.out.printf("Scanpoints remaining: %d (~%s)%n", togo, estimate);
             }
           }
         });
@@ -126,6 +119,7 @@ public final class App {
 //      }
 //      System.out.printf("Scanlines remaining: %s%n", j);
 //    }
+    System.out.printf("Writing to file: %s%n", FILENAME);
     try {
       ImageIO.write(img, IMAGE_FORMAT, new File(FILENAME));
     } catch (IOException e) {
