@@ -52,6 +52,10 @@ public final class App {
 
   @AutoValue
   abstract static class Todo {
+    static Todo create(int i, int j) {
+      return new AutoValue_App_Todo(i, j);
+    }
+
     abstract int getI();
     abstract int getJ();
   }
@@ -72,7 +76,7 @@ public final class App {
     List<Todo> todos = new ArrayList<>();
     for (int j = IMAGE_HEIGHT - 1; j >= 0; --j) {
       for (int i = 0; i < IMAGE_WIDTH; ++i) {
-        todos.add(new AutoValue_App_Todo(i, j));
+        todos.add(Todo.create(i, j));
       }
     }
     int count = todos.size();
