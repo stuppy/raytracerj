@@ -202,28 +202,10 @@ public final class App {
     return background(ray);
   }
 
-  @SuppressWarnings("unused")
   private Color background(Ray ray) {
-    if (false) {
-      return quadrants(ray.getDirection().getX(), ray.getDirection().getY());
-    }
     Vector3D unitDirection = ray.getDirection().toUnitVector();
     double t = 0.5 * (unitDirection.getY() + 1.0);
     return WHITE.multiply(1.0 - t).add(SAMPLE.multiply(t));
-  }
-
-  private Color quadrants(double x, double y) {
-    if (x >= 0) {
-      if (y >= 0) {
-        return Color.create(0xFF0000);
-      } else {
-        return Color.create(0x00FF00);
-      }
-    } else if (y >= 0) {
-      return Color.create(0x0000FF);
-    } else {
-      return Color.create(0xFFFF00);
-    }
   }
 
   private static final class Module extends AbstractModule {
