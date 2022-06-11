@@ -109,20 +109,6 @@ public final class App {
             }
           }
         });
-//    for (int j = IMAGE_HEIGHT - 1; j >= 0; --j) {
-//      for (int i = 0; i < IMAGE_WIDTH; ++i) {
-//        Color color = Color.BLACK;
-//        for (int s = 0; s < SAMPLES_PER_PIXEL; ++s) {
-//          double u = ((double) i + Randoms.randomDouble()) / (IMAGE_WIDTH - 1);
-//          double v = ((double) j + Randoms.randomDouble()) / (IMAGE_HEIGHT - 1);
-//          Ray ray = camera.getRay(u, v);
-//          Color sample = rayColor(ray, MAX_DEPTH);
-//          color = color.add(sample);
-//        }
-//        img.setRGB(i, IMAGE_HEIGHT - 1 - j, color.divide(SAMPLES_PER_PIXEL).gamma2().toRgb());
-//      }
-//      System.out.printf("Scanlines remaining: %s%n", j);
-//    }
     System.out.printf("Writing to file: %s%n", FILENAME);
     try {
       ImageIO.write(img, IMAGE_FORMAT, new File(FILENAME));
