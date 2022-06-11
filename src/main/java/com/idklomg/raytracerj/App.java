@@ -101,7 +101,6 @@ public final class App {
           if (done % n == 0) {
             synchronized (sw) {
               long msForN = sw.elapsed(TimeUnit.MILLISECONDS);
-              System.out.printf("time for %d: %d ms%n", n, msForN);
               sw.reset().start();
               int togo = count - done;
               long msForTogo = (long) ((double) togo * msForN / n);
