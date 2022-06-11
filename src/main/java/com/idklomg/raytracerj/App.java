@@ -34,7 +34,7 @@ public final class App {
   private static final String FILENAME = "Image.png";
   private static final double FIELD_OF_VIEW_IN_DEGREES = 20;
   private static final double ASPECT_RATIO = 3.0 / 2.0;
-  private static final Point3D LOOK_FROM = Point3D.create(13, 2, 30);
+  private static final Point3D LOOK_FROM = Point3D.create(13, 2, 3);
   private static final Point3D LOOK_AT = Point3D.create(0, 0, 0);
   private static final Vector3D VERTICAL_UP = Vector3D.create(0, 1, 0);
   private static final double DIST_TO_FOCUS = 10.0;
@@ -101,6 +101,7 @@ public final class App {
           if (done % n == 0) {
             synchronized (sw) {
               long msForN = sw.elapsed(TimeUnit.MILLISECONDS);
+              System.out.printf("time for %d: %d ms%n", n, msForN);
               sw.reset().start();
               int togo = count - done;
               long msForTogo = (long) ((double) togo * msForN / n);
